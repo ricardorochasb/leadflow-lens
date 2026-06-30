@@ -42,20 +42,9 @@ type Lead = {
 
 const SEGMENTOS = [
   { label: "Clínicas Odontológicas", value: "clinicas odontologicas" },
-  { label: "Clínica Médica",          value: "clinicas medicas" },
-  { label: "Farmácia",                value: "farmacias" },
-  { label: "Academia / Fitness",      value: "academias" },
-  { label: "Restaurante",             value: "restaurantes" },
-  { label: "Café / Lanchonete",       value: "cafeteria" },
-  { label: "Hotel / Pousada",         value: "hoteis" },
-  { label: "Veterinária / Pet Shop",  value: "pet shop" },
-  { label: "Salão de Beleza",         value: "salao beleza" },
-  { label: "Escritório de Advocacia", value: "advogados" },
-  { label: "Contabilidade",           value: "contabilidade" },
-  { label: "Supermercado",            value: "supermercados" },
-  { label: "Banco",                   value: "bancos" },
-  { label: "Imobiliária",             value: "imobiliaria" },
-  { label: "Hospital",                value: "hospital" },
+  { label: "Clínicas Veterinárias",  value: "clinicas veterinarias" },
+  { label: "Restaurantes",           value: "restaurantes" },
+  { label: "Imobiliárias",           value: "imobiliaria" },
 ];
 
 const CIDADES = [
