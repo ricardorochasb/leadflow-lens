@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Search, Building2, Folder, FolderOpen, MapPin, Phone, Filter, Sparkles, ExternalLink, Globe, Trash2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -62,8 +62,14 @@ function Dashboard() {
   const [quantidade, setQuantidade] = useState<string>("25");
   const [segmentoValue, setSegmentoValue] = useState<string>("");
   const [bairro, setBairro] = useState<string>("");
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>(() => {
+    try { const s = localStorage.getItem("leadflow_leads"); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
   const [openFolder, setOpenFolder] = useState<string | null>(null);
+
+  useEffect(() => {
+    try { localStorage.setItem("leadflow_leads", JSON.stringify(leads)); } catch {}
+  }, [leads]);
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ type: "folder" | "lead"; key: string } | null>(null);
 
