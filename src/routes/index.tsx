@@ -42,7 +42,7 @@ type Lead = {
 
 const SEGMENTOS = [
   { label: "Clínicas Odontológicas", value: "clinicas odontologicas" },
-  { label: "Clínicas Veterinárias",  value: "clinicas veterinarias" },
+  { label: "Clínicas Veterinárias",  value: "veterinaria" },
   { label: "Restaurantes",           value: "restaurantes" },
   { label: "Imobiliárias",           value: "imobiliaria" },
 ];
