@@ -41,34 +41,48 @@ type Lead = {
   nota: string;
 };
 
+// label = exibido na tela | value = enviado ao webhook n8n
 const SEGMENTOS = [
-  "Clínica Médica",
-  "Veterinária",
-  "Restaurante",
-  "Academia",
-  "Salão de Beleza",
-  "Escritório de Advocacia",
-  "Imobiliária",
-  "Loja de Roupas",
+  { label: "Clínicas Odontológicas", value: "clinicas odontologicas" },
+  { label: "Clínica Médica", value: "clinicas medicas" },
+  { label: "Farmácia", value: "farmacias" },
+  { label: "Academia / Fitness", value: "academias" },
+  { label: "Restaurante", value: "restaurantes" },
+  { label: "Café / Lanchonete", value: "cafeteria" },
+  { label: "Hotel / Pousada", value: "hoteis" },
+  { label: "Veterinária / Pet Shop", value: "pet shop" },
+  { label: "Salão de Beleza", value: "salao beleza" },
+  { label: "Escritório de Advocacia", value: "advogados" },
+  { label: "Contabilidade", value: "contabilidade" },
+  { label: "Supermercado", value: "supermercados" },
+  { label: "Banco", value: "bancos" },
+  { label: "Imobiliária", value: "imobiliaria" },
+  { label: "Hospital", value: "hospital" },
 ];
 
-const ESTADOS = [
-  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO",
+// Cidades suportadas pelo n8n (mapa de coordenadas)
+const CIDADES = [
+  "Recife", "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Salvador",
+  "Fortaleza", "Curitiba", "Manaus", "Porto Alegre", "Belém", "Goiânia",
+  "Guarulhos", "Campinas", "Natal", "Maceió", "João Pessoa", "Teresina",
+  "Campo Grande", "Cuiabá", "Aracaju", "Porto Velho", "Rio Branco",
+  "Palmas", "Boa Vista", "Florianópolis", "Vitória", "São Luís",
+  "Macapá", "Ribeirão Preto", "Uberlândia", "Sorocaba",
+  "Feira de Santana", "Joinville", "Londrina", "Osasco", "Santo André",
 ];
 
 const MOCK: Lead[] = [
   { id: "1", empresa: "Clínica Vida Plena", telefone: "(11) 98888-1010", endereco: "Av. Paulista, 1200", cep: "01310-100", cidade: "São Paulo", estado: "SP", segmento: "Clínica Médica", status: "green", nota: "Reunião marcada para terça 14h." },
-  { id: "2", empresa: "PetCare Premium", telefone: "(11) 97777-2020", endereco: "Rua Augusta, 540", cep: "01304-000", cidade: "São Paulo", estado: "SP", segmento: "Veterinária", status: "amber", nota: "Aguardando retorno do gerente." },
+  { id: "2", empresa: "PetCare Premium", telefone: "(11) 97777-2020", endereco: "Rua Augusta, 540", cep: "01304-000", cidade: "São Paulo", estado: "SP", segmento: "Veterinária / Pet Shop", status: "amber", nota: "Aguardando retorno do gerente." },
   { id: "3", empresa: "Cantina do Bairro", telefone: "(11) 96666-3030", endereco: "Rua Oscar Freire, 88", cep: "01426-001", cidade: "São Paulo", estado: "SP", segmento: "Restaurante", status: "red", nota: "Sem interesse no momento." },
   { id: "4", empresa: "Sabor Mineiro", telefone: "(11) 95555-4040", endereco: "Av. Brigadeiro, 2200", cep: "01451-000", cidade: "São Paulo", estado: "SP", segmento: "Restaurante", status: "none", nota: "" },
-  { id: "5", empresa: "Bem-Estar Animal", telefone: "(21) 94444-5050", endereco: "Av. Atlântica, 500", cep: "22010-000", cidade: "Rio de Janeiro", estado: "RJ", segmento: "Veterinária", status: "amber", nota: "Enviar proposta por e-mail." },
+  { id: "5", empresa: "Bem-Estar Animal", telefone: "(21) 94444-5050", endereco: "Av. Atlântica, 500", cep: "22010-000", cidade: "Rio de Janeiro", estado: "RJ", segmento: "Veterinária / Pet Shop", status: "amber", nota: "Enviar proposta por e-mail." },
 ];
 
 function Dashboard() {
-  const [cidade, setCidade] = useState("");
-  const [estado, setEstado] = useState<string>("");
-  const [quantidade, setQuantidade] = useState<string>("10");
-  const [segmento, setSegmento] = useState<string>("");
+  const [cidade, setCidade] = useState<string>("");
+  const [quantidade, setQuantidade] = useState<string>("25");
+  const [segmentoValue, setSegmentoValue] = useState<string>("");
   const [bairro, setBairro] = useState<string>("");
 
   const [leads, setLeads] = useState<Lead[]>(MOCK);
@@ -76,25 +90,22 @@ function Dashboard() {
   const [loading, setLoading] = useState(false);
 
   async function handleSearch() {
-    if (!segmento || !cidade || !quantidade) {
+    if (!segmentoValue || !cidade || !quantidade) {
       toast.error("Preencha tipo de empresa, cidade e quantidade.");
       return;
     }
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        tipo: segmento,
+        tipo: segmentoValue,
         cidade,
         limite: quantidade,
       });
       if (bairro.trim()) params.set("bairro", bairro.trim());
       const url = `https://n8nai.ricardorochaslc.com.br/webhook/captura-leads?${params.toString()}`;
-      await fetch(url, {
-        method: "GET",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-      });
-      toast.success("Busca iniciada! Os leads serão salvos na planilha Google Sheets em até 30 segundos.");
+      await fetch(url, { method: "GET", mode: "no-cors" });
+      const seg = SEGMENTOS.find((s) => s.value === segmentoValue);
+      toast.success(`Busca de "${seg?.label}" em ${cidade} iniciada! Os leads chegam na planilha em até 30 segundos.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao iniciar a busca.");
     } finally {
@@ -140,26 +151,23 @@ function Dashboard() {
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" /> Filtros de busca
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_120px_1fr_1fr_auto]">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_120px_1fr_1fr_auto]">
             <Field label="Cidade">
-              <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Ex: São Paulo" />
-            </Field>
-            <Field label="Estado">
-              <Select value={estado} onValueChange={setEstado}>
-                <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+              <Select value={cidade} onValueChange={setCidade}>
+                <SelectTrigger><SelectValue placeholder="Selecione a cidade" /></SelectTrigger>
                 <SelectContent>
-                  {ESTADOS.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                  {CIDADES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
             <Field label="Quantidade">
-              <Input type="number" min={1} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
+              <Input type="number" min={1} max={100} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
             </Field>
             <Field label="Tipo de empresa">
-              <Select value={segmento} onValueChange={setSegmento}>
+              <Select value={segmentoValue} onValueChange={setSegmentoValue}>
                 <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                 <SelectContent>
-                  {SEGMENTOS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {SEGMENTOS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </Field>
