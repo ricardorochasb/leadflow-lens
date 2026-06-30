@@ -335,7 +335,7 @@ function Dashboard() {
                               <button
                                 onClick={() => setConfirmDelete({ type: "lead", key: l.id })}
                                 title="Excluir empresa"
-                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
+                                className="rounded-lg p-1.5 text-red-400 transition-colors hover:bg-red-500/20 border border-red-500/30"
                               >
                                 <X className="h-4 w-4" />
                               </button>
