@@ -32,6 +32,7 @@ type Lead = {
   empresa: string;
   telefone: string;
   endereco: string;
+  bairro: string;
   cidade: string;
   segmento: string;
   site: string;
@@ -42,20 +43,20 @@ type Lead = {
 
 const SEGMENTOS = [
   { label: "Clínicas Odontológicas", value: "clinicas odontologicas" },
-  { label: "Clínica Médica",         value: "clinicas medicas" },
-  { label: "Farmácia",               value: "farmacias" },
-  { label: "Academia / Fitness",     value: "academias" },
-  { label: "Restaurante",            value: "restaurantes" },
-  { label: "Café / Lanchonete",      value: "cafeteria" },
-  { label: "Hotel / Pousada",        value: "hoteis" },
-  { label: "Veterinária / Pet Shop", value: "pet shop" },
-  { label: "Salão de Beleza",        value: "salao beleza" },
-  { label: "Escritório de Advocacia",value: "advogados" },
-  { label: "Contabilidade",          value: "contabilidade" },
-  { label: "Supermercado",           value: "supermercados" },
-  { label: "Banco",                  value: "bancos" },
-  { label: "Imobiliária",            value: "imobiliaria" },
-  { label: "Hospital",               value: "hospital" },
+  { label: "Clínica Médica",          value: "clinicas medicas" },
+  { label: "Farmácia",                value: "farmacias" },
+  { label: "Academia / Fitness",      value: "academias" },
+  { label: "Restaurante",             value: "restaurantes" },
+  { label: "Café / Lanchonete",       value: "cafeteria" },
+  { label: "Hotel / Pousada",         value: "hoteis" },
+  { label: "Veterinária / Pet Shop",  value: "pet shop" },
+  { label: "Salão de Beleza",         value: "salao beleza" },
+  { label: "Escritório de Advocacia", value: "advogados" },
+  { label: "Contabilidade",           value: "contabilidade" },
+  { label: "Supermercado",            value: "supermercados" },
+  { label: "Banco",                   value: "bancos" },
+  { label: "Imobiliária",             value: "imobiliaria" },
+  { label: "Hospital",                value: "hospital" },
 ];
 
 const CIDADES = [
@@ -98,24 +99,26 @@ function Dashboard() {
         empresa: l.nome || "Sem nome",
         telefone: l.telefone || "",
         endereco: l.endereco || "",
+        bairro: l.bairro || bairro,
         cidade: l.cidade || cidade,
         segmento: seg?.label || segmentoValue,
         site: l.site || "",
-        googleMaps: l.googleMaps || `https://www.google.com/maps/search/${encodeURIComponent(l.nome + " " + cidade)}`,
+        googleMaps: l.googleMaps || `https://www.google.com/maps/search/${encodeURIComponent((l.nome || "") + " " + cidade)}`,
         status: "none",
         nota: "",
       }));
 
       if (novosLeads.length === 0) {
-        toast.warning("Nenhum lead encontrado. Tente outra cidade ou segmento.");
+        toast.warning("Nenhum lead encontrado. Tente outro bairro ou segmento.");
       } else {
         setLeads((prev) => {
-          const existingIds = new Set(prev.map((l) => l.empresa + l.cidade));
-          const unicos = novosLeads.filter((l) => !existingIds.has(l.empresa + l.cidade));
+          const existingKeys = new Set(prev.map((l) => l.empresa + l.cidade + l.bairro));
+          const unicos = novosLeads.filter((l) => !existingKeys.has(l.empresa + l.cidade + l.bairro));
           return [...unicos, ...prev];
         });
         setOpenFolder(seg?.label || segmentoValue);
-        toast.success(`${novosLeads.length} leads de "${seg?.label}" em ${cidade} adicionados!`);
+        const localLabel = bairro ? `${bairro}, ${cidade}` : cidade;
+        toast.success(`${novosLeads.length} leads de "${seg?.label}" em ${localLabel} adicionados!`);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao buscar leads.");
@@ -140,7 +143,6 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1400px] px-6 py-8">
-        {/* Header */}
         <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand text-brand-foreground shadow-[0_0_30px_-5px_var(--brand)]">
@@ -157,7 +159,6 @@ function Dashboard() {
           </div>
         </header>
 
-        {/* Filtros */}
         <section className="rounded-2xl border border-border bg-card/60 p-5 backdrop-blur">
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" /> Filtros de busca
@@ -194,15 +195,13 @@ function Dashboard() {
           </div>
         </section>
 
-        {/* Legenda */}
         <section className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">Legenda de tags:</span>
+          <span className="font-medium text-foreground">Legenda:</span>
           <LegendDot color="green" label="Reunião Agendada" />
           <LegendDot color="amber" label="Em Andamento" />
           <LegendDot color="red" label="Recusado ou Sem Resposta" />
         </section>
 
-        {/* Pastas por segmento */}
         <section className="mt-6 space-y-3">
           {grouped.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border bg-card/30 p-10 text-center text-sm text-muted-foreground">
@@ -230,80 +229,77 @@ function Dashboard() {
                     <StatusCount items={items} status="red" />
                   </div>
                 </button>
-
                 {open && (
-                  <div className="border-t border-border">
-                    <div className="overflow-x-auto">
-                      <table className="w-full min-w-[1100px] border-collapse text-sm">
-                        <thead>
-                          <tr className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                            <Th>Empresa</Th>
-                            <Th>Telefone</Th>
-                            <Th>Endereço</Th>
-                            <Th>Site / Maps</Th>
-                            <Th>Status</Th>
-                            <Th className="min-w-[240px]">Observações</Th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((l) => (
-                            <tr key={l.id} className="border-t border-border/60 align-top hover:bg-accent/20">
-                              <Td>
-                                <div className="flex items-center gap-2">
-                                  <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                  <span className="font-medium">{l.empresa}</span>
-                                </div>
-                                <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                                  <MapPin className="h-3 w-3" />{l.cidade}
-                                </div>
-                              </Td>
-                              <Td>
-                                {l.telefone ? (
-                                  <div className="flex items-center gap-1.5 text-foreground">
-                                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <a href={`tel:${l.telefone}`} className="hover:underline">{l.telefone}</a>
-                                  </div>
-                                ) : (
-                                  <a href={l.googleMaps} target="_blank" rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-1 text-xs text-blue-400 hover:bg-blue-500/20">
-                                    <ExternalLink className="h-3 w-3" /> Buscar no Google
+                  <div className="border-t border-border overflow-x-auto">
+                    <table className="w-full min-w-[1200px] border-collapse text-sm">
+                      <thead>
+                        <tr className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                          <Th>Empresa</Th>
+                          <Th>Telefone</Th>
+                          <Th>Endereço / Bairro</Th>
+                          <Th>Links</Th>
+                          <Th>Status</Th>
+                          <Th className="min-w-[240px]">Observações</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((l) => (
+                          <tr key={l.id} className="border-t border-border/60 align-top hover:bg-accent/20">
+                            <Td>
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <span className="font-medium">{l.empresa}</span>
+                              </div>
+                              <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3" />
+                                {[l.bairro, l.cidade].filter(Boolean).join(", ")}
+                              </div>
+                            </Td>
+                            <Td>
+                              {l.telefone ? (
+                                <a href={`tel:${l.telefone}`} className="flex items-center gap-1.5 hover:underline">
+                                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />{l.telefone}
+                                </a>
+                              ) : (
+                                <a href={l.googleMaps} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-1 text-xs text-blue-400 hover:bg-blue-500/20">
+                                  <ExternalLink className="h-3 w-3" /> Buscar no Google
+                                </a>
+                              )}
+                            </Td>
+                            <Td>
+                              <div className="text-muted-foreground">{l.endereco || "—"}</div>
+                            </Td>
+                            <Td>
+                              <div className="flex flex-col gap-1">
+                                {l.site && (
+                                  <a href={l.site.startsWith("http") ? l.site : `https://${l.site}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                    <Globe className="h-3 w-3" /> Site
                                   </a>
                                 )}
-                              </Td>
-                              <Td>
-                                <span className="text-muted-foreground">{l.endereco || "—"}</span>
-                              </Td>
-                              <Td>
-                                <div className="flex flex-col gap-1">
-                                  {l.site && (
-                                    <a href={l.site.startsWith("http") ? l.site : `https://${l.site}`}
-                                      target="_blank" rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                                      <Globe className="h-3 w-3" /> Site
-                                    </a>
-                                  )}
-                                  <a href={l.googleMaps} target="_blank" rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                                    <MapPin className="h-3 w-3" /> Google Maps
-                                  </a>
-                                </div>
-                              </Td>
-                              <Td>
-                                <StatusSelect value={l.status} onChange={(v) => updateLead(l.id, { status: v })} />
-                              </Td>
-                              <Td>
-                                <Textarea
-                                  value={l.nota}
-                                  onChange={(e) => updateLead(l.id, { nota: e.target.value })}
-                                  placeholder="Anotações sobre o contato..."
-                                  className="min-h-[64px] resize-y bg-background/40"
-                                />
-                              </Td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                                <a href={l.googleMaps} target="_blank" rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                  <MapPin className="h-3 w-3" /> Google Maps
+                                </a>
+                              </div>
+                            </Td>
+                            <Td>
+                              <StatusSelect value={l.status} onChange={(v) => updateLead(l.id, { status: v })} />
+                            </Td>
+                            <Td>
+                              <Textarea
+                                value={l.nota}
+                                onChange={(e) => updateLead(l.id, { nota: e.target.value })}
+                                placeholder="Anotações sobre o contato..."
+                                className="min-h-[64px] resize-y bg-background/40"
+                              />
+                            </Td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -323,14 +319,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
-
 function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <th className={`px-4 py-3 font-medium ${className}`}>{children}</th>;
 }
 function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-4 py-3 ${className}`}>{children}</td>;
 }
-
 function LegendDot({ color, label }: { color: "green" | "amber" | "red"; label: string }) {
   const cls = color === "green" ? "bg-status-green" : color === "amber" ? "bg-status-amber" : "bg-status-red";
   return (
@@ -340,7 +334,6 @@ function LegendDot({ color, label }: { color: "green" | "amber" | "red"; label: 
     </span>
   );
 }
-
 function StatusCount({ items, status }: { items: Lead[]; status: "green" | "amber" | "red" }) {
   const n = items.filter((i) => i.status === status).length;
   if (!n) return null;
@@ -351,14 +344,11 @@ function StatusCount({ items, status }: { items: Lead[]; status: "green" | "ambe
     </span>
   );
 }
-
 function StatusSelect({ value, onChange }: { value: Status; onChange: (v: Status) => void }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as Status)}>
       <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Definir tag">
-          <StatusLabel value={value} />
-        </SelectValue>
+        <SelectValue placeholder="Definir tag"><StatusLabel value={value} /></SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none"><StatusLabel value="none" /></SelectItem>
@@ -369,13 +359,12 @@ function StatusSelect({ value, onChange }: { value: Status; onChange: (v: Status
     </Select>
   );
 }
-
 function StatusLabel({ value }: { value: Status }) {
   const map: Record<Status, { cls: string; text: string }> = {
-    none: { cls: "bg-muted-foreground/40", text: "Sem tag" },
-    green: { cls: "bg-status-green", text: "Reunião Agendada" },
-    amber: { cls: "bg-status-amber", text: "Em Andamento" },
-    red: { cls: "bg-status-red", text: "Recusado / Sem Resposta" },
+    none:  { cls: "bg-muted-foreground/40", text: "Sem tag" },
+    green: { cls: "bg-status-green",        text: "Reunião Agendada" },
+    amber: { cls: "bg-status-amber",        text: "Em Andamento" },
+    red:   { cls: "bg-status-red",          text: "Recusado / Sem Resposta" },
   };
   const { cls, text } = map[value];
   return (
