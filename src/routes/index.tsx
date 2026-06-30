@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, Building2, Folder, FolderOpen, MapPin, Phone, Filter, Sparkles, ExternalLink, Globe } from "lucide-react";
+import { Search, Building2, Folder, FolderOpen, MapPin, Phone, Filter, Sparkles, ExternalLink, Globe, Trash2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,6 @@ export const Route = createFileRoute("/")({
     meta: [
       { title: "LeadFlow — Captação de Leads" },
       { name: "description", content: "Dashboard de captação de leads integrado ao Claude e n8n." },
-      { property: "og:title", content: "LeadFlow — Captação de Leads" },
     ],
   }),
   component: Dashboard,
@@ -77,6 +76,7 @@ function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "folder" | "lead"; key: string } | null>(null);
 
   async function handleSearch() {
     if (!segmentoValue || !cidade || !quantidade) {
@@ -89,10 +89,8 @@ function Dashboard() {
       const params = new URLSearchParams({ tipo: segmentoValue, cidade, limite: quantidade });
       if (bairro.trim()) params.set("bairro", bairro.trim());
       const url = `https://n8nai.ricardorochaslc.com.br/webhook/captura-leads?${params.toString()}`;
-
       const res = await fetch(url, { method: "GET", mode: "cors" });
       if (!res.ok) throw new Error(`Erro ${res.status}`);
-
       const data = await res.json();
       const novosLeads: Lead[] = (data.leads || []).map((l: Record<string, string>, i: number) => ({
         id: `${Date.now()}-${i}`,
@@ -107,7 +105,6 @@ function Dashboard() {
         status: "none",
         nota: "",
       }));
-
       if (novosLeads.length === 0) {
         toast.warning("Nenhum lead encontrado. Tente outro bairro ou segmento.");
       } else {
@@ -127,6 +124,22 @@ function Dashboard() {
     }
   }
 
+  function deleteFolder(seg: string) {
+    setLeads((prev) => prev.filter((l) => l.segmento !== seg));
+    if (openFolder === seg) setOpenFolder(null);
+    setConfirmDelete(null);
+    toast.success(`Pasta "${seg}" removida.`);
+  }
+
+  function deleteLead(id: string) {
+    setLeads((prev) => prev.filter((l) => l.id !== id));
+    setConfirmDelete(null);
+  }
+
+  function updateLead(id: string, patch: Partial<Lead>) {
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }
+
   const grouped = useMemo(() => {
     const map = new Map<string, Lead[]>();
     for (const l of leads) {
@@ -136,12 +149,36 @@ function Dashboard() {
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [leads]);
 
-  function updateLead(id: string, patch: Partial<Lead>) {
-    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-  }
-
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Modal de confirmação */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <h2 className="mb-2 text-base font-semibold">Confirmar exclusão</h2>
+            <p className="mb-6 text-sm text-muted-foreground">
+              {confirmDelete.type === "folder"
+                ? `Remover a pasta "${confirmDelete.key}" e todos os leads dentro dela?`
+                : "Remover este lead da lista?"}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>Cancelar</Button>
+              <Button
+                size="sm"
+                className="bg-red-500 text-white hover:bg-red-600"
+                onClick={() =>
+                  confirmDelete.type === "folder"
+                    ? deleteFolder(confirmDelete.key)
+                    : deleteLead(confirmDelete.key)
+                }
+              >
+                Excluir
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto max-w-[1400px] px-6 py-8">
         <header className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -212,23 +249,31 @@ function Dashboard() {
             const open = openFolder === seg;
             return (
               <div key={seg} className="overflow-hidden rounded-2xl border border-border bg-card/60">
-                <button
-                  onClick={() => setOpenFolder(open ? null : seg)}
-                  className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-accent/40"
-                >
-                  <div className="flex items-center gap-3">
+                <div className="flex w-full items-center gap-2 px-5 py-4">
+                  <button
+                    onClick={() => setOpenFolder(open ? null : seg)}
+                    className="flex flex-1 items-center gap-3 text-left transition-colors hover:opacity-80"
+                  >
                     {open ? <FolderOpen className="h-5 w-5 text-brand" /> : <Folder className="h-5 w-5 text-muted-foreground" />}
                     <div>
                       <div className="font-medium">{seg}</div>
                       <div className="text-xs text-muted-foreground">{items.length} {items.length === 1 ? "empresa" : "empresas"}</div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  </button>
+                  <div className="flex items-center gap-3">
                     <StatusCount items={items} status="green" />
                     <StatusCount items={items} status="amber" />
                     <StatusCount items={items} status="red" />
+                    <button
+                      onClick={() => setConfirmDelete({ type: "folder", key: seg })}
+                      title="Excluir pasta"
+                      className="ml-2 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                </button>
+                </div>
+
                 {open && (
                   <div className="border-t border-border overflow-x-auto">
                     <table className="w-full min-w-[1200px] border-collapse text-sm">
@@ -239,7 +284,8 @@ function Dashboard() {
                           <Th>Endereço / Bairro</Th>
                           <Th>Links</Th>
                           <Th>Status</Th>
-                          <Th className="min-w-[240px]">Observações</Th>
+                          <Th className="min-w-[220px]">Observações</Th>
+                          <Th className="w-10"></Th>
                         </tr>
                       </thead>
                       <tbody>
@@ -268,7 +314,7 @@ function Dashboard() {
                               )}
                             </Td>
                             <Td>
-                              <div className="text-muted-foreground">{l.endereco || "—"}</div>
+                              <span className="text-muted-foreground">{l.endereco || "—"}</span>
                             </Td>
                             <Td>
                               <div className="flex flex-col gap-1">
@@ -295,6 +341,15 @@ function Dashboard() {
                                 placeholder="Anotações sobre o contato..."
                                 className="min-h-[64px] resize-y bg-background/40"
                               />
+                            </Td>
+                            <Td>
+                              <button
+                                onClick={() => setConfirmDelete({ type: "lead", key: l.id })}
+                                title="Excluir empresa"
+                                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </Td>
                           </tr>
                         ))}
