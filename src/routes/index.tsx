@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, Building2, Folder, FolderOpen, MapPin, Phone, Filter, Sparkles } from "lucide-react";
+import { Search, Building2, Folder, FolderOpen, MapPin, Phone, Filter, Sparkles, ExternalLink, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,8 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "LeadFlow — Captação de Leads" },
-      { name: "description", content: "Dashboard de captação de leads integrado ao Claude e n8n. Filtre por cidade, estado e segmento e organize os retornos por pastas." },
+      { name: "description", content: "Dashboard de captação de leads integrado ao Claude e n8n." },
       { property: "og:title", content: "LeadFlow — Captação de Leads" },
-      { property: "og:description", content: "Dashboard de captação de leads integrado ao Claude e n8n." },
     ],
   }),
   component: Dashboard,
@@ -33,50 +32,40 @@ type Lead = {
   empresa: string;
   telefone: string;
   endereco: string;
-  cep: string;
   cidade: string;
-  estado: string;
   segmento: string;
+  site: string;
+  googleMaps: string;
   status: Status;
   nota: string;
 };
 
-// label = exibido na tela | value = enviado ao webhook n8n
 const SEGMENTOS = [
   { label: "Clínicas Odontológicas", value: "clinicas odontologicas" },
-  { label: "Clínica Médica", value: "clinicas medicas" },
-  { label: "Farmácia", value: "farmacias" },
-  { label: "Academia / Fitness", value: "academias" },
-  { label: "Restaurante", value: "restaurantes" },
-  { label: "Café / Lanchonete", value: "cafeteria" },
-  { label: "Hotel / Pousada", value: "hoteis" },
+  { label: "Clínica Médica",         value: "clinicas medicas" },
+  { label: "Farmácia",               value: "farmacias" },
+  { label: "Academia / Fitness",     value: "academias" },
+  { label: "Restaurante",            value: "restaurantes" },
+  { label: "Café / Lanchonete",      value: "cafeteria" },
+  { label: "Hotel / Pousada",        value: "hoteis" },
   { label: "Veterinária / Pet Shop", value: "pet shop" },
-  { label: "Salão de Beleza", value: "salao beleza" },
-  { label: "Escritório de Advocacia", value: "advogados" },
-  { label: "Contabilidade", value: "contabilidade" },
-  { label: "Supermercado", value: "supermercados" },
-  { label: "Banco", value: "bancos" },
-  { label: "Imobiliária", value: "imobiliaria" },
-  { label: "Hospital", value: "hospital" },
+  { label: "Salão de Beleza",        value: "salao beleza" },
+  { label: "Escritório de Advocacia",value: "advogados" },
+  { label: "Contabilidade",          value: "contabilidade" },
+  { label: "Supermercado",           value: "supermercados" },
+  { label: "Banco",                  value: "bancos" },
+  { label: "Imobiliária",            value: "imobiliaria" },
+  { label: "Hospital",               value: "hospital" },
 ];
 
-// Cidades suportadas pelo n8n (mapa de coordenadas)
 const CIDADES = [
-  "Recife", "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Salvador",
-  "Fortaleza", "Curitiba", "Manaus", "Porto Alegre", "Belém", "Goiânia",
-  "Guarulhos", "Campinas", "Natal", "Maceió", "João Pessoa", "Teresina",
-  "Campo Grande", "Cuiabá", "Aracaju", "Porto Velho", "Rio Branco",
-  "Palmas", "Boa Vista", "Florianópolis", "Vitória", "São Luís",
-  "Macapá", "Ribeirão Preto", "Uberlândia", "Sorocaba",
-  "Feira de Santana", "Joinville", "Londrina", "Osasco", "Santo André",
-];
-
-const MOCK: Lead[] = [
-  { id: "1", empresa: "Clínica Vida Plena", telefone: "(11) 98888-1010", endereco: "Av. Paulista, 1200", cep: "01310-100", cidade: "São Paulo", estado: "SP", segmento: "Clínica Médica", status: "green", nota: "Reunião marcada para terça 14h." },
-  { id: "2", empresa: "PetCare Premium", telefone: "(11) 97777-2020", endereco: "Rua Augusta, 540", cep: "01304-000", cidade: "São Paulo", estado: "SP", segmento: "Veterinária / Pet Shop", status: "amber", nota: "Aguardando retorno do gerente." },
-  { id: "3", empresa: "Cantina do Bairro", telefone: "(11) 96666-3030", endereco: "Rua Oscar Freire, 88", cep: "01426-001", cidade: "São Paulo", estado: "SP", segmento: "Restaurante", status: "red", nota: "Sem interesse no momento." },
-  { id: "4", empresa: "Sabor Mineiro", telefone: "(11) 95555-4040", endereco: "Av. Brigadeiro, 2200", cep: "01451-000", cidade: "São Paulo", estado: "SP", segmento: "Restaurante", status: "none", nota: "" },
-  { id: "5", empresa: "Bem-Estar Animal", telefone: "(21) 94444-5050", endereco: "Av. Atlântica, 500", cep: "22010-000", cidade: "Rio de Janeiro", estado: "RJ", segmento: "Veterinária / Pet Shop", status: "amber", nota: "Enviar proposta por e-mail." },
+  "Recife","São Paulo","Rio de Janeiro","Belo Horizonte","Salvador",
+  "Fortaleza","Curitiba","Manaus","Porto Alegre","Belém","Goiânia",
+  "Guarulhos","Campinas","Natal","Maceió","João Pessoa","Teresina",
+  "Campo Grande","Cuiabá","Aracaju","Porto Velho","Rio Branco",
+  "Palmas","Boa Vista","Florianópolis","Vitória","São Luís",
+  "Macapá","Ribeirão Preto","Uberlândia","Sorocaba",
+  "Feira de Santana","Joinville","Londrina","Osasco","Santo André",
 ];
 
 function Dashboard() {
@@ -84,9 +73,8 @@ function Dashboard() {
   const [quantidade, setQuantidade] = useState<string>("25");
   const [segmentoValue, setSegmentoValue] = useState<string>("");
   const [bairro, setBairro] = useState<string>("");
-
-  const [leads, setLeads] = useState<Lead[]>(MOCK);
-  const [openFolder, setOpenFolder] = useState<string | null>("Clínica Médica");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSearch() {
@@ -95,19 +83,42 @@ function Dashboard() {
       return;
     }
     setLoading(true);
+    const seg = SEGMENTOS.find((s) => s.value === segmentoValue);
     try {
-      const params = new URLSearchParams({
-        tipo: segmentoValue,
-        cidade,
-        limite: quantidade,
-      });
+      const params = new URLSearchParams({ tipo: segmentoValue, cidade, limite: quantidade });
       if (bairro.trim()) params.set("bairro", bairro.trim());
       const url = `https://n8nai.ricardorochaslc.com.br/webhook/captura-leads?${params.toString()}`;
-      await fetch(url, { method: "GET", mode: "no-cors" });
-      const seg = SEGMENTOS.find((s) => s.value === segmentoValue);
-      toast.success(`Busca de "${seg?.label}" em ${cidade} iniciada! Os leads chegam na planilha em até 30 segundos.`);
+
+      const res = await fetch(url, { method: "GET", mode: "cors" });
+      if (!res.ok) throw new Error(`Erro ${res.status}`);
+
+      const data = await res.json();
+      const novosLeads: Lead[] = (data.leads || []).map((l: Record<string, string>, i: number) => ({
+        id: `${Date.now()}-${i}`,
+        empresa: l.nome || "Sem nome",
+        telefone: l.telefone || "",
+        endereco: l.endereco || "",
+        cidade: l.cidade || cidade,
+        segmento: seg?.label || segmentoValue,
+        site: l.site || "",
+        googleMaps: l.googleMaps || `https://www.google.com/maps/search/${encodeURIComponent(l.nome + " " + cidade)}`,
+        status: "none",
+        nota: "",
+      }));
+
+      if (novosLeads.length === 0) {
+        toast.warning("Nenhum lead encontrado. Tente outra cidade ou segmento.");
+      } else {
+        setLeads((prev) => {
+          const existingIds = new Set(prev.map((l) => l.empresa + l.cidade));
+          const unicos = novosLeads.filter((l) => !existingIds.has(l.empresa + l.cidade));
+          return [...unicos, ...prev];
+        });
+        setOpenFolder(seg?.label || segmentoValue);
+        toast.success(`${novosLeads.length} leads de "${seg?.label}" em ${cidade} adicionados!`);
+      }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao iniciar a busca.");
+      toast.error(err instanceof Error ? err.message : "Erro ao buscar leads.");
     } finally {
       setLoading(false);
     }
@@ -177,7 +188,7 @@ function Dashboard() {
             <div className="flex items-end">
               <Button onClick={handleSearch} disabled={loading} className="h-10 w-full bg-brand text-brand-foreground hover:bg-brand/90 md:w-auto md:px-6">
                 <Search className="mr-2 h-4 w-4" />
-                {loading ? "Buscando..." : "Buscar"}
+                {loading ? "Buscando... (~20s)" : "Buscar"}
               </Button>
             </div>
           </div>
@@ -229,11 +240,9 @@ function Dashboard() {
                             <Th>Empresa</Th>
                             <Th>Telefone</Th>
                             <Th>Endereço</Th>
-                            <Th>CEP</Th>
-                            <Th>Cidade</Th>
-                            <Th>UF</Th>
+                            <Th>Site / Maps</Th>
                             <Th>Status</Th>
-                            <Th className="min-w-[260px]">Observações do atendimento</Th>
+                            <Th className="min-w-[240px]">Observações</Th>
                           </tr>
                         </thead>
                         <tbody>
@@ -241,23 +250,44 @@ function Dashboard() {
                             <tr key={l.id} className="border-t border-border/60 align-top hover:bg-accent/20">
                               <Td>
                                 <div className="flex items-center gap-2">
-                                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                                  <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
                                   <span className="font-medium">{l.empresa}</span>
                                 </div>
-                              </Td>
-                              <Td>
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <Phone className="h-3.5 w-3.5" />{l.telefone}
+                                <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                                  <MapPin className="h-3 w-3" />{l.cidade}
                                 </div>
                               </Td>
                               <Td>
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                  <MapPin className="h-3.5 w-3.5" />{l.endereco}
+                                {l.telefone ? (
+                                  <div className="flex items-center gap-1.5 text-foreground">
+                                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <a href={`tel:${l.telefone}`} className="hover:underline">{l.telefone}</a>
+                                  </div>
+                                ) : (
+                                  <a href={l.googleMaps} target="_blank" rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-1 text-xs text-blue-400 hover:bg-blue-500/20">
+                                    <ExternalLink className="h-3 w-3" /> Buscar no Google
+                                  </a>
+                                )}
+                              </Td>
+                              <Td>
+                                <span className="text-muted-foreground">{l.endereco || "—"}</span>
+                              </Td>
+                              <Td>
+                                <div className="flex flex-col gap-1">
+                                  {l.site && (
+                                    <a href={l.site.startsWith("http") ? l.site : `https://${l.site}`}
+                                      target="_blank" rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                      <Globe className="h-3 w-3" /> Site
+                                    </a>
+                                  )}
+                                  <a href={l.googleMaps} target="_blank" rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                    <MapPin className="h-3 w-3" /> Google Maps
+                                  </a>
                                 </div>
                               </Td>
-                              <Td className="text-muted-foreground">{l.cep}</Td>
-                              <Td>{l.cidade}</Td>
-                              <Td className="text-muted-foreground">{l.estado}</Td>
                               <Td>
                                 <StatusSelect value={l.status} onChange={(v) => updateLead(l.id, { status: v })} />
                               </Td>
