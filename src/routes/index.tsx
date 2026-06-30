@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -68,15 +69,37 @@ function Dashboard() {
   const [estado, setEstado] = useState<string>("");
   const [quantidade, setQuantidade] = useState<string>("10");
   const [segmento, setSegmento] = useState<string>("");
+  const [bairro, setBairro] = useState<string>("");
 
   const [leads, setLeads] = useState<Lead[]>(MOCK);
   const [openFolder, setOpenFolder] = useState<string | null>("Clínica Médica");
   const [loading, setLoading] = useState(false);
 
-  function handleSearch() {
+  async function handleSearch() {
+    if (!segmento || !cidade || !quantidade) {
+      toast.error("Preencha tipo de empresa, cidade e quantidade.");
+      return;
+    }
     setLoading(true);
-    // Simulação — a integração real será feita via n8n / Claude.
-    setTimeout(() => setLoading(false), 600);
+    try {
+      const params = new URLSearchParams({
+        tipo: segmento,
+        cidade,
+        limite: quantidade,
+      });
+      if (bairro.trim()) params.set("bairro", bairro.trim());
+      const url = `https://n8nai.ricardorochaslc.com.br/webhook/captura-leads?${params.toString()}`;
+      await fetch(url, {
+        method: "GET",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+      });
+      toast.success("Busca iniciada! Os leads serão salvos na planilha Google Sheets em até 30 segundos.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao iniciar a busca.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const grouped = useMemo(() => {
@@ -117,7 +140,7 @@ function Dashboard() {
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Filter className="h-4 w-4" /> Filtros de busca
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_140px_1fr_auto]">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_120px_1fr_1fr_auto]">
             <Field label="Cidade">
               <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Ex: São Paulo" />
             </Field>
@@ -132,13 +155,16 @@ function Dashboard() {
             <Field label="Quantidade">
               <Input type="number" min={1} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
             </Field>
-            <Field label="Segmento profissional">
+            <Field label="Tipo de empresa">
               <Select value={segmento} onValueChange={setSegmento}>
-                <SelectTrigger><SelectValue placeholder="Selecione o segmento" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                 <SelectContent>
                   {SEGMENTOS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </Field>
+            <Field label="Bairro (opcional)">
+              <Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Ex: Boa Viagem" />
             </Field>
             <div className="flex items-end">
               <Button onClick={handleSearch} disabled={loading} className="h-10 w-full bg-brand text-brand-foreground hover:bg-brand/90 md:w-auto md:px-6">
